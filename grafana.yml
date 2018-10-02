@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  grafana:
+    image: localhost:5000/aonegrafana
+#    image: grafana/grafana
+    networks:
+       - consumer_tadk
+    volumes:
+      - /aone/templates/grafana:/etc/grafana
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000"
+    environment:
+      DUDE1: "{{.Service.Name}}"
+      DUDE2: "{{.Task.Name}}"
+      GF_SERVER_DOMAIN: "localhost"
+      GF_SERVER_ROOT_URL: "http://localhost/${PATHPREFIX}/"
+    deploy:
+      restart_policy:
+        max_attempts: 3
+      mode: replicated
+      replicas: 1
+      labels:
+        traefik.port: 3000
+        knerus.test: ${TEST}
+#        traefik.frontend.rule: "PathPrefix: /grafana"
+        traefik.frontend.rule: PathPrefixStrip:/${PATHPREFIX}
+        traefik.docker.network: consumer_tadk
+        traefik.backend.loadbalancer.sticky: "true"
+        traefik.frontend.passHostHeader: "true"
+      placement:
+        constraints: [node.role == worker]
+
+networks:
+  consumer_tadk:
+    external: true
+volumes:
+  grafana_data:
